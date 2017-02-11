@@ -40,8 +40,9 @@ function fillGroups(regex) {
 	// closing bracket may look like: ), )+, )+?, ){1,}?, ){1,1111}?
 	var tester = /((?!\\)\(\?)|((?!\\)\()|((?!\\)\)(?:\{\d+,?\d*}|[*+?])?\??)/g;
 
-	var modifier = regexString.substring(regexString.lastIndexOf(regexString[0]) + 1);
-	var strippedString = regexString.substr(1, regexString.lastIndexOf(regexString[0]) - 1);
+	var lastSlash = regexString.lastIndexOf(regexString[0]);
+	var modifier = regexString.substring(lastSlash + 1);
+	var strippedString = regexString.substr(1, lastSlash - 1);
 	var modifiedRegex = strippedString;
 
 	var lastGroupStartPosition = -1;
