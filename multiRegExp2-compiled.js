@@ -35,7 +35,10 @@ function addGroupToRegexString(str, start, end, groupsAdded) {
  */
 function fillGroups(regex) {
 	var regexString = regex.toString();
-	var tester = /(\(\?)|(\()|([^\\]\))/g; // regexp is greedy so it should match (? before ( right?
+	// regexp is greedy so it should match (? before ( right?
+	// brackets may be not quoted by \
+	// closing bracket may look like: ), )+, )+?, ){1,}?, ){1,1111}?
+	var tester = /((?!\\)\(\?)|((?!\\)\()|((?!\\)\)(?:\{\d+,?\d*}|[*+?])?\??)/g;
 
 	var modifier = regexString.substring(regexString.lastIndexOf(regexString[0]) + 1);
 	var strippedString = regexString.substr(1, regexString.lastIndexOf(regexString[0]) - 1);
@@ -55,37 +58,40 @@ function fillGroups(regex) {
 	while ((matchArr = tester.exec(strippedString)) !== null) {
 		if (matchArr[1]) {
 			// non capturing group
-			nonGroupPositions.push(matchArr.index);
+			var index = matchArr.index + matchArr[0].length - 1;
+			nonGroupPositions.push(index);
 		} else if (matchArr[2]) {
 			// capturing group
-			var index = matchArr.index;
+			var _index = matchArr.index + matchArr[0].length - 1;
 			var lastGroupPosition = Math.max(lastGroupStartPosition, lastGroupEndPosition);
-			if (lastGroupPosition < index - 1) {
-				modifiedRegex = addGroupToRegexString(modifiedRegex, lastGroupPosition + 1, index - 1, groupsAdded);
+
+			if (lastGroupPosition < _index - 1) {
+				modifiedRegex = addGroupToRegexString(modifiedRegex, lastGroupPosition + 1, _index - 1, groupsAdded);
 				groupsAdded++;
-				lastGroupEndPosition = index - 1; // imaginary position as it is not in regex but modifiedRegex
+				lastGroupEndPosition = _index - 1; // imaginary position as it is not in regex but modifiedRegex
 				currentLengthIndexes.push(groupCount + groupsAdded);
 			}
 
 			groupCount++;
-			lastGroupStartPosition = index;
-			groupPositions.push(index);
+			lastGroupStartPosition = _index;
+			groupPositions.push(_index);
 			groupNumber.push(groupCount + groupsAdded);
 			groupIndexMapper[groupCount] = groupCount + groupsAdded;
 			previousGroupsForGroup[groupCount] = currentLengthIndexes.slice();
 		} else if (matchArr[3]) {
 			// closing bracket
+			var _index2 = matchArr.index + matchArr[0].length - 1;
+
 			if (groupPositions.length && !nonGroupPositions.length || groupPositions[groupPositions.length - 1] > nonGroupPositions[nonGroupPositions.length - 1]) {
-				var _index = matchArr.index + 1; // +1 as second character of regexp is closing bracket
-				if (lastGroupStartPosition < lastGroupEndPosition && lastGroupEndPosition < _index - 1) {
-					modifiedRegex = addGroupToRegexString(modifiedRegex, lastGroupEndPosition + 1, _index - 1, groupsAdded);
+				if (lastGroupStartPosition < lastGroupEndPosition && lastGroupEndPosition < _index2 - 1) {
+					modifiedRegex = addGroupToRegexString(modifiedRegex, lastGroupEndPosition + 1, _index2 - 1, groupsAdded);
 					groupsAdded++;
-					//lastGroupEndPosition = matchArr.index - 1; will be set anyway
+					//lastGroupEndPosition = index - 1; will be set anyway
 					currentLengthIndexes.push(groupCount + groupsAdded);
 				}
 
 				groupPositions.pop();
-				lastGroupEndPosition = _index;
+				lastGroupEndPosition = _index2;
 				currentLengthIndexes.push(groupNumber.pop());
 			} else if (nonGroupPositions.length) {
 				nonGroupPositions.pop();
@@ -116,10 +122,10 @@ MultiRegExp2.prototype.execForAllGroups = function (string) {
 		var r = {
 			match: matches[mapped],
 			start: firstIndex + _this.previousGroupsForGroup[group].reduce(function (sum, i) {
-				return sum + matches[i].length;
+				return sum + (matches[i] ? matches[i].length : 0);
 			}, 0)
 		};
-		r.end = r.start + matches[mapped].length - 1;
+		r.end = r.start + (matches[mapped] ? matches[mapped].length - 1 : 0);
 
 		return r;
 	});
@@ -133,10 +139,10 @@ MultiRegExp2.prototype.execForGroup = function (string, group) {
 	var r = {
 		match: matches[mapped],
 		start: firstIndex + this.previousGroupsForGroup[group].reduce(function (sum, i) {
-			return sum + matches[i].length;
+			return sum + (matches[i] ? matches[i].length : 0);
 		}, 0)
 	};
-	r.end = r.start + matches[mapped].length - 1;
+	r.end = r.start + (matches[mapped] ? matches[mapped].length - 1 : 0);
 
 	return r;
 };

@@ -33,7 +33,10 @@ function addGroupToRegexString(str, start, end, groupsAdded) {
  */
 function fillGroups(regex) {
 	const regexString = regex.toString();
-	const tester = /(\(\?)|(\()|([^\\]\))/g; // regexp is greedy so it should match (? before ( right?
+	// regexp is greedy so it should match (? before ( right?
+	// brackets may be not quoted by \
+	// closing bracket may look like: ), )+, )+?, ){1,}?, ){1,1111}?
+	const tester = /((?!\\)\(\?)|((?!\\)\()|((?!\\)\)(?:\{\d+,?\d*}|[*+?])?\??)/g;
 
 	const modifier = regexString.substring(regexString.lastIndexOf(regexString[0])+1);
 	const strippedString = regexString.substr(1, regexString.lastIndexOf(regexString[0])-1);
@@ -52,11 +55,13 @@ function fillGroups(regex) {
 	const previousGroupsForGroup = {};
 	while ((matchArr = tester.exec(strippedString)) !== null ) {
 		if(matchArr[1]) { // non capturing group
-			nonGroupPositions.push(matchArr.index);
+			let index = matchArr.index + matchArr[0].length - 1;
+			nonGroupPositions.push(index);
 		}
 		else if(matchArr[2]) { // capturing group
-			let index = matchArr.index;
+			let index = matchArr.index + matchArr[0].length - 1;
 			let lastGroupPosition = Math.max(lastGroupStartPosition, lastGroupEndPosition);
+
 			if(lastGroupPosition < index - 1) {
 				modifiedRegex = addGroupToRegexString(modifiedRegex, lastGroupPosition + 1, index - 1, groupsAdded);
 				groupsAdded++;
@@ -72,14 +77,15 @@ function fillGroups(regex) {
 			previousGroupsForGroup[groupCount] = currentLengthIndexes.slice();
 		}
 		else if(matchArr[3]) { // closing bracket
+			let index = matchArr.index + matchArr[0].length - 1;
+
 			if( (groupPositions.length && !nonGroupPositions.length) ||
 				groupPositions[groupPositions.length-1] > nonGroupPositions[nonGroupPositions.length-1]
 			) {
-				let index = matchArr.index + 1; // +1 as second character of regexp is closing bracket
 				if(lastGroupStartPosition < lastGroupEndPosition && lastGroupEndPosition < index - 1) {
 					modifiedRegex = addGroupToRegexString(modifiedRegex, lastGroupEndPosition + 1, index - 1, groupsAdded);
 					groupsAdded++;
-					//lastGroupEndPosition = matchArr.index - 1; will be set anyway
+					//lastGroupEndPosition = index - 1; will be set anyway
 					currentLengthIndexes.push(groupCount + groupsAdded);
 				}
 
@@ -113,9 +119,11 @@ MultiRegExp2.prototype.execForAllGroups = function(string) {
 		let mapped = this.groupIndexMapper[group];
 		let r = {
 			match:  matches[mapped],
-			start:  firstIndex + this.previousGroupsForGroup[group].reduce((sum, i) => sum + matches[i].length, 0),
+			start:  firstIndex + this.previousGroupsForGroup[group].reduce(
+				(sum, i) => sum + (matches[i] ? matches[i].length : 0), 0
+			)
 		};
-		r.end = r.start + matches[mapped].length - 1;
+		r.end = r.start + (matches[mapped] ? matches[mapped].length - 1 : 0);
 
 		return r;
 	});
@@ -128,9 +136,11 @@ MultiRegExp2.prototype.execForGroup = function(string, group) {
 	let mapped = this.groupIndexMapper[group];
 	let r = {
 		match:  matches[mapped],
-		start:  firstIndex + this.previousGroupsForGroup[group].reduce((sum, i) => sum + matches[i].length, 0),
+		start:  firstIndex + this.previousGroupsForGroup[group].reduce(
+			(sum, i) => sum + (matches[i] ? matches[i].length : 0), 0
+		)
 	};
-	r.end = r.start + matches[mapped].length - 1;
+	r.end = r.start + (matches[mapped] ? matches[mapped].length - 1 : 0);
 
 	return r;
 };

@@ -5,7 +5,7 @@
 let regex = /a(?: )bc(def(ghi)xyz)/g;
 let regex2 = new MultiRegExp2(regex);
 
-let matches = regex2.execForAllGroups('ababa bcdefghixyzXXXX'));
+let matches = regex2.execForAllGroups('ababa bcdefghixyzXXXX');
 console.log(matches);
 ```
 
@@ -17,6 +17,6 @@ Will output:
 
 Also available:
 ```
-let matches = regex2.execForGroup('ababa bcdefghixyzXXXX', 2));
+let matches = regex2.execForGroup('ababa bcdefghixyzXXXX', 2);
 = { match: 'ghi', start: 11, end: 14 }
 ```
