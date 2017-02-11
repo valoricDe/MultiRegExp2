@@ -38,9 +38,8 @@ function fillGroups(regex) {
 	// closing bracket may look like: ), )+, )+?, ){1,}?, ){1,1111}?
 	const tester = /((?!\\)\(\?)|((?!\\)\()|((?!\\)\)(?:\{\d+,?\d*}|[*+?])?\??)/g;
 
-	const lastSlash = regexString.lastIndexOf(regexString[0]);
-	const modifier = regexString.substring(lastSlash+1);
-	const strippedString = regexString.substr(1, lastSlash-1);
+	const modifier = regexString.substring(regexString.lastIndexOf(regexString[0])+1);
+	const strippedString = regexString.substr(1, regexString.lastIndexOf(regexString[0])-1);
 	let modifiedRegex = strippedString;
 
 	let lastGroupStartPosition = -1;
@@ -130,14 +129,15 @@ MultiRegExp2.prototype.execForAllGroups = function(string) {
 	});
 };
 MultiRegExp2.prototype.execForGroup = function(string, group) {
-	let matches = RegExp.prototype.exec.call(this.regexp, string);
+	const matches = RegExp.prototype.exec.call(this.regexp, string);
 	if(!matches) return matches;
-	let firstIndex = matches.index;
+	const firstIndex = matches.index;
 
-	let mapped = this.groupIndexMapper[group];
+	const mapped = group == 0 ? 0 : this.groupIndexMapper[group];
+	const previousGroups = group == 0 ? [] : this.previousGroupsForGroup[group];
 	let r = {
 		match:  matches[mapped],
-		start:  firstIndex + this.previousGroupsForGroup[group].reduce(
+		start:  firstIndex + previousGroups.reduce(
 			(sum, i) => sum + (matches[i] ? matches[i].length : 0), 0
 		)
 	};
@@ -145,3 +145,5 @@ MultiRegExp2.prototype.execForGroup = function(string, group) {
 
 	return r;
 };
+
+export default MultiRegExp2;

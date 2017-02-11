@@ -1,5 +1,8 @@
 'use strict';
 
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
 /**
  * Created by velten on 11.02.17.
  */
@@ -40,9 +43,8 @@ function fillGroups(regex) {
 	// closing bracket may look like: ), )+, )+?, ){1,}?, ){1,1111}?
 	var tester = /((?!\\)\(\?)|((?!\\)\()|((?!\\)\)(?:\{\d+,?\d*}|[*+?])?\??)/g;
 
-	var lastSlash = regexString.lastIndexOf(regexString[0]);
-	var modifier = regexString.substring(lastSlash + 1);
-	var strippedString = regexString.substr(1, lastSlash - 1);
+	var modifier = regexString.substring(regexString.lastIndexOf(regexString[0]) + 1);
+	var strippedString = regexString.substr(1, regexString.lastIndexOf(regexString[0]) - 1);
 	var modifiedRegex = strippedString;
 
 	var lastGroupStartPosition = -1;
@@ -136,10 +138,11 @@ MultiRegExp2.prototype.execForGroup = function (string, group) {
 	if (!matches) return matches;
 	var firstIndex = matches.index;
 
-	var mapped = this.groupIndexMapper[group];
+	var mapped = group == 0 ? 0 : this.groupIndexMapper[group];
+	var previousGroups = group == 0 ? [] : this.previousGroupsForGroup[group];
 	var r = {
 		match: matches[mapped],
-		start: firstIndex + this.previousGroupsForGroup[group].reduce(function (sum, i) {
+		start: firstIndex + previousGroups.reduce(function (sum, i) {
 			return sum + (matches[i] ? matches[i].length : 0);
 		}, 0)
 	};
@@ -147,5 +150,7 @@ MultiRegExp2.prototype.execForGroup = function (string, group) {
 
 	return r;
 };
+
+exports.default = MultiRegExp2;
 
 //# sourceMappingURL=multiRegExp2-compiled.js.map
