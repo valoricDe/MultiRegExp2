@@ -32,15 +32,23 @@ function addGroupToRegexString(str, start, end, groupsAdded) {
  * @return {{regexp: RegExp, groupIndexMapper: {}, previousGroupsForGroup: {}}}
  */
 function fillGroups(regex) {
-	const regexString = regex.toString();
+	let regexString;
+	let modifier;
+	if(regex.source && regex.flags) {
+		regexString = regex.source;
+		modifier = regex.flags;
+	}
+	else {
+		regexString = regex.toString();
+		modifier = regexString.substring(regexString.lastIndexOf(regexString[0])+1); // sometimes order matters ;)
+		regexString = regexString.substr(1, regex.toString().lastIndexOf(regexString[0])-1);
+	}
 	// regexp is greedy so it should match (? before ( right?
 	// brackets may be not quoted by \
 	// closing bracket may look like: ), )+, )+?, ){1,}?, ){1,1111}?
 	const tester = /((?!\\)\(\?)|((?!\\)\()|((?!\\)\)(?:\{\d+,?\d*}|[*+?])?\??)/g;
 
-	const modifier = regexString.substring(regexString.lastIndexOf(regexString[0])+1);
-	const strippedString = regexString.substr(1, regexString.lastIndexOf(regexString[0])-1);
-	let modifiedRegex = strippedString;
+	let modifiedRegex = regexString;
 
 	let lastGroupStartPosition = -1;
 	let lastGroupEndPosition = -1;
@@ -53,7 +61,7 @@ function fillGroups(regex) {
 	const currentLengthIndexes = [];
 	const groupIndexMapper = {};
 	const previousGroupsForGroup = {};
-	while ((matchArr = tester.exec(strippedString)) !== null ) {
+	while ((matchArr = tester.exec(regexString)) !== null ) {
 		if(matchArr[1]) { // non capturing group
 			let index = matchArr.index + matchArr[0].length - 1;
 			nonGroupPositions.push(index);
@@ -102,48 +110,50 @@ function fillGroups(regex) {
 	return {regexp: new RegExp(modifiedRegex, modifier), groupIndexMapper, previousGroupsForGroup};
 }
 
-function MultiRegExp2(baseRegExp) {
-	let filled = fillGroups(baseRegExp);
-	this.regexp = filled.regexp;
-	this.groupIndexMapper = filled.groupIndexMapper;
-	this.previousGroupsForGroup = filled.previousGroupsForGroup;
-}
+export default class MultiRegExp2 {
+	constructor(baseRegExp) {
+		const {regexp, groupIndexMapper, previousGroupsForGroup} = fillGroups(baseRegExp);
+		this.regexp = regexp;
+		this.groupIndexMapper = groupIndexMapper;
+		this.previousGroupsForGroup = previousGroupsForGroup;
+	}
 
-MultiRegExp2.prototype = new RegExp();
-MultiRegExp2.prototype.execForAllGroups = function(string) {
-	let matches = RegExp.prototype.exec.call(this.regexp, string);
-	if(!matches) return matches;
-	let firstIndex = matches.index;
+	execForAllGroups(string, includeFullMatch) {
+		let matches = RegExp.prototype.exec.call(this.regexp, string);
+		if(!matches) return matches;
+		let firstIndex = matches.index;
+		let indexMapper = includeFullMatch ? this.groupIndexMapper : Object.assign({0: 0}, this.groupIndexMapper);
+		let previousGroups = includeFullMatch ? this.previousGroupsForGroup : Object.assign({0: []}, this.previousGroupsForGroup);
 
-	return Object.keys(this.groupIndexMapper).map((group) => {
-		let mapped = this.groupIndexMapper[group];
+		return Object.keys(indexMapper).map((group) => {
+			let mapped = indexMapper[group];
+			let r = {
+				match:  matches[mapped],
+				start:  firstIndex + previousGroups[group].reduce(
+					(sum, i) => sum + (matches[i] ? matches[i].length : 0), 0
+				)
+			};
+			r.end = r.start + (matches[mapped] ? matches[mapped].length : 0);
+
+			return r;
+		});
+	}
+
+	execForGroup(string, group) {
+		const matches = RegExp.prototype.exec.call(this.regexp, string);
+		if(!matches) return matches;
+		const firstIndex = matches.index;
+
+		const mapped = group == 0 ? 0 : this.groupIndexMapper[group];
+		const previousGroups = group == 0 ? [] : this.previousGroupsForGroup[group];
 		let r = {
 			match:  matches[mapped],
-			start:  firstIndex + this.previousGroupsForGroup[group].reduce(
+			start:  firstIndex + previousGroups.reduce(
 				(sum, i) => sum + (matches[i] ? matches[i].length : 0), 0
 			)
 		};
-		r.end = r.start + (matches[mapped] ? matches[mapped].length - 1 : 0);
+		r.end = r.start + (matches[mapped] ? matches[mapped].length : 0);
 
 		return r;
-	});
-};
-MultiRegExp2.prototype.execForGroup = function(string, group) {
-	const matches = RegExp.prototype.exec.call(this.regexp, string);
-	if(!matches) return matches;
-	const firstIndex = matches.index;
-
-	const mapped = group == 0 ? 0 : this.groupIndexMapper[group];
-	const previousGroups = group == 0 ? [] : this.previousGroupsForGroup[group];
-	let r = {
-		match:  matches[mapped],
-		start:  firstIndex + previousGroups.reduce(
-			(sum, i) => sum + (matches[i] ? matches[i].length : 0), 0
-		)
-	};
-	r.end = r.start + (matches[mapped] ? matches[mapped].length - 1 : 0);
-
-	return r;
-};
-
-export default MultiRegExp2;
+	}
+}

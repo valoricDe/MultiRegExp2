@@ -3,6 +3,11 @@
 Object.defineProperty(exports, "__esModule", {
 	value: true
 });
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
 /**
  * Created by velten on 11.02.17.
  */
@@ -37,15 +42,22 @@ function addGroupToRegexString(str, start, end, groupsAdded) {
  * @return {{regexp: RegExp, groupIndexMapper: {}, previousGroupsForGroup: {}}}
  */
 function fillGroups(regex) {
-	var regexString = regex.toString();
+	var regexString = void 0;
+	var modifier = void 0;
+	if (regex.source && regex.flags) {
+		regexString = regex.source;
+		modifier = regex.flags;
+	} else {
+		regexString = regex.toString();
+		modifier = regexString.substring(regexString.lastIndexOf(regexString[0]) + 1); // sometimes order matters ;)
+		regexString = regexString.substr(1, regex.toString().lastIndexOf(regexString[0]) - 1);
+	}
 	// regexp is greedy so it should match (? before ( right?
 	// brackets may be not quoted by \
 	// closing bracket may look like: ), )+, )+?, ){1,}?, ){1,1111}?
 	var tester = /((?!\\)\(\?)|((?!\\)\()|((?!\\)\)(?:\{\d+,?\d*}|[*+?])?\??)/g;
 
-	var modifier = regexString.substring(regexString.lastIndexOf(regexString[0]) + 1);
-	var strippedString = regexString.substr(1, regexString.lastIndexOf(regexString[0]) - 1);
-	var modifiedRegex = strippedString;
+	var modifiedRegex = regexString;
 
 	var lastGroupStartPosition = -1;
 	var lastGroupEndPosition = -1;
@@ -58,7 +70,7 @@ function fillGroups(regex) {
 	var currentLengthIndexes = [];
 	var groupIndexMapper = {};
 	var previousGroupsForGroup = {};
-	while ((matchArr = tester.exec(strippedString)) !== null) {
+	while ((matchArr = tester.exec(regexString)) !== null) {
 		if (matchArr[1]) {
 			// non capturing group
 			var index = matchArr.index + matchArr[0].length - 1;
@@ -105,51 +117,65 @@ function fillGroups(regex) {
 	return { regexp: new RegExp(modifiedRegex, modifier), groupIndexMapper: groupIndexMapper, previousGroupsForGroup: previousGroupsForGroup };
 }
 
-function MultiRegExp2(baseRegExp) {
-	var filled = fillGroups(baseRegExp);
-	this.regexp = filled.regexp;
-	this.groupIndexMapper = filled.groupIndexMapper;
-	this.previousGroupsForGroup = filled.previousGroupsForGroup;
-}
+var MultiRegExp2 = function () {
+	function MultiRegExp2(baseRegExp) {
+		_classCallCheck(this, MultiRegExp2);
 
-MultiRegExp2.prototype = new RegExp();
-MultiRegExp2.prototype.execForAllGroups = function (string) {
-	var _this = this;
+		var _fillGroups = fillGroups(baseRegExp),
+		    regexp = _fillGroups.regexp,
+		    groupIndexMapper = _fillGroups.groupIndexMapper,
+		    previousGroupsForGroup = _fillGroups.previousGroupsForGroup;
 
-	var matches = RegExp.prototype.exec.call(this.regexp, string);
-	if (!matches) return matches;
-	var firstIndex = matches.index;
+		this.regexp = regexp;
+		this.groupIndexMapper = groupIndexMapper;
+		this.previousGroupsForGroup = previousGroupsForGroup;
+	}
 
-	return Object.keys(this.groupIndexMapper).map(function (group) {
-		var mapped = _this.groupIndexMapper[group];
-		var r = {
-			match: matches[mapped],
-			start: firstIndex + _this.previousGroupsForGroup[group].reduce(function (sum, i) {
-				return sum + (matches[i] ? matches[i].length : 0);
-			}, 0)
-		};
-		r.end = r.start + (matches[mapped] ? matches[mapped].length - 1 : 0);
+	_createClass(MultiRegExp2, [{
+		key: 'execForAllGroups',
+		value: function execForAllGroups(string, includeFullMatch) {
+			var matches = RegExp.prototype.exec.call(this.regexp, string);
+			if (!matches) return matches;
+			var firstIndex = matches.index;
+			var indexMapper = includeFullMatch ? this.groupIndexMapper : Object.assign({ 0: 0 }, this.groupIndexMapper);
+			var previousGroups = includeFullMatch ? this.previousGroupsForGroup : Object.assign({ 0: [] }, this.previousGroupsForGroup);
 
-		return r;
-	});
-};
-MultiRegExp2.prototype.execForGroup = function (string, group) {
-	var matches = RegExp.prototype.exec.call(this.regexp, string);
-	if (!matches) return matches;
-	var firstIndex = matches.index;
+			return Object.keys(indexMapper).map(function (group) {
+				var mapped = indexMapper[group];
+				var r = {
+					match: matches[mapped],
+					start: firstIndex + previousGroups[group].reduce(function (sum, i) {
+						return sum + (matches[i] ? matches[i].length : 0);
+					}, 0)
+				};
+				r.end = r.start + (matches[mapped] ? matches[mapped].length : 0);
 
-	var mapped = group == 0 ? 0 : this.groupIndexMapper[group];
-	var previousGroups = group == 0 ? [] : this.previousGroupsForGroup[group];
-	var r = {
-		match: matches[mapped],
-		start: firstIndex + previousGroups.reduce(function (sum, i) {
-			return sum + (matches[i] ? matches[i].length : 0);
-		}, 0)
-	};
-	r.end = r.start + (matches[mapped] ? matches[mapped].length - 1 : 0);
+				return r;
+			});
+		}
+	}, {
+		key: 'execForGroup',
+		value: function execForGroup(string, group) {
+			var matches = RegExp.prototype.exec.call(this.regexp, string);
+			if (!matches) return matches;
+			var firstIndex = matches.index;
 
-	return r;
-};
+			var mapped = group == 0 ? 0 : this.groupIndexMapper[group];
+			var previousGroups = group == 0 ? [] : this.previousGroupsForGroup[group];
+			var r = {
+				match: matches[mapped],
+				start: firstIndex + previousGroups.reduce(function (sum, i) {
+					return sum + (matches[i] ? matches[i].length : 0);
+				}, 0)
+			};
+			r.end = r.start + (matches[mapped] ? matches[mapped].length : 0);
+
+			return r;
+		}
+	}]);
+
+	return MultiRegExp2;
+}();
 
 exports.default = MultiRegExp2;
 
