@@ -46,7 +46,7 @@ function fillGroups(regex) {
 	// regexp is greedy so it should match (? before ( right?
 	// brackets may be not quoted by \
 	// closing bracket may look like: ), )+, )+?, ){1,}?, ){1,1111}?
-	const tester = /((?!\\)\(\?)|((?!\\)\()|((?!\\)\)(?:\{\d+,?\d*}|[*+?])?\??)/g;
+	const tester = /(\(\?)|(\()|(\)(?:\{\d+,?\d*}|[*+?])?\??)/g;
 
 	let modifiedRegex = regexString;
 
@@ -62,6 +62,7 @@ function fillGroups(regex) {
 	const groupIndexMapper = {};
 	const previousGroupsForGroup = {};
 	while ((matchArr = tester.exec(regexString)) !== null ) {
+        if (isEscaped(matchArr.index) || isInCharacterSets(matchArr.index)) continue;
 		if(matchArr[1]) { // non capturing group
 			let index = matchArr.index + matchArr[0].length - 1;
 			nonGroupPositions.push(index);
@@ -105,6 +106,21 @@ function fillGroups(regex) {
 				nonGroupPositions.pop();
 			}
 		}
+        function isEscaped(position) {
+            let count = 0;
+            for (let i = position - 1; i >= 0; i--) {
+                if (regexString.substr(i, 1) != "\\") break;
+                count++;
+            }
+            return count != 0 && count % 2 == 1;
+        }
+        function isInCharacterSets(position) {
+            for (let i = position - 1; i >= 0; i--) {
+                if (regexString.substr(i, 1) == "]" && !isEscaped(i)) return false;
+                if (regexString.substr(i, 1) == "[" && !isEscaped(i)) return true;
+            }
+            return false;
+        }
 	}
 
 	return {regexp: new RegExp(modifiedRegex, modifier), groupIndexMapper, previousGroupsForGroup};
