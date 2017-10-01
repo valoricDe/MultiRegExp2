@@ -10,7 +10,6 @@
  * @param groupsAdded int defines the offset to the original string because of inserted brackets
  * @return {string}
  */
-
 function addGroupToRegexString(str, start, end, groupsAdded) {
   start += groupsAdded * 2;
   end += groupsAdded * 2;
