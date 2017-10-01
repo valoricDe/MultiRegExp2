@@ -17,33 +17,6 @@ function addGroupToRegexString(str, start, end, groupsAdded) {
 }
 
 /**
- *
- * @param position
- * @return {boolean}
- */
-function isEscaped(position) {
-  let count = 0;
-  for (let i = position - 1; i >= 0; i--) {
-    if (regexString.substr(i, 1) != "\\") break;
-    count++;
-  }
-  return count != 0 && count % 2 == 1;
-}
-
-/**
- *
- * @param position
- * @return {boolean}
- */
-function isInCharacterSets(position) {
-  for (let i = position - 1; i >= 0; i--) {
-    if (regexString.substr(i, 1) == "]" && !isEscaped(i)) return false;
-    if (regexString.substr(i, 1) == "[" && !isEscaped(i)) return true;
-  }
-  return false;
-}
-
-/**
  * converts the given regex to a regex where all not captured string are going to be captured
  * it along sides generates a mapper which maps the original group index to the shifted group offset and
  * generates a list of groups indexes (including new generated capturing groups)
@@ -72,12 +45,14 @@ function fillGroups(regex) {
   // regexp is greedy so it should match (? before ( right?
   // brackets may be not quoted by \
   // closing bracket may look like: ), )+, )+?, ){1,}?, ){1,1111}?
-  const tester = /(\(\?)|(\()|(\)(?:\{\d+,?\d*}|[*+?])?\??)/g;
+	const tester = /(\\\()|(\\\))|(\(\?)|(\()|(\)(?:\{\d+,?\d*}|[*+?])?\??)/g;
 
   let modifiedRegex = regexString;
 
   let lastGroupStartPosition = -1;
   let lastGroupEndPosition = -1;
+  let lastNonGroupStartPosition = -1;
+  let lastNonGroupEndPosition = -1;
   let groupsAdded = 0;
   let groupCount = 0;
   let matchArr;
@@ -88,16 +63,36 @@ function fillGroups(regex) {
   const groupIndexMapper = {};
   const previousGroupsForGroup = {};
   while ((matchArr = tester.exec(regexString)) !== null) {
-    if (isEscaped(regexString, matchArr.index) || isInCharacterSets(regexString, matchArr.index)) continue;
-    if (matchArr[1]) { // non capturing group
+    if(matchArr[1] || matchArr[2]) { // ignore escaped brackets
+
+    }
+    if (matchArr[3]) { // non capturing group
       let index = matchArr.index + matchArr[0].length - 1;
+
+      lastNonGroupStartPosition = index;
       nonGroupPositions.push(index);
     }
-    else if (matchArr[2]) { // capturing group
+    else if (matchArr[4]) { // capturing group
       let index = matchArr.index + matchArr[0].length - 1;
+
       let lastGroupPosition = Math.max(lastGroupStartPosition, lastGroupEndPosition);
 
-      if (lastGroupPosition < index - 1) {
+      // if a (? is found add ) before it
+      if(lastNonGroupStartPosition > lastGroupPosition) {
+        modifiedRegex = addGroupToRegexString(modifiedRegex, lastGroupPosition + 1, lastNonGroupStartPosition - 2, groupsAdded);
+        groupsAdded++;
+        lastGroupEndPosition = lastNonGroupStartPosition - 1; // imaginary position as it is not in regex but modifiedRegex
+        currentLengthIndexes.push(groupCount + groupsAdded);
+
+        // if necessary also add group between (? and opening bracket
+        if(index > lastNonGroupStartPosition + 2) {
+          modifiedRegex = addGroupToRegexString(modifiedRegex, lastNonGroupStartPosition + 2, index - 1, groupsAdded);
+          groupsAdded++;
+          lastGroupEndPosition = index - 1; // imaginary position as it is not in regex but modifiedRegex
+          currentLengthIndexes.push(groupCount + groupsAdded);
+        }
+      }
+      else if (lastGroupPosition < index - 1) {
         modifiedRegex = addGroupToRegexString(modifiedRegex, lastGroupPosition + 1, index - 1, groupsAdded);
         groupsAdded++;
         lastGroupEndPosition = index - 1; // imaginary position as it is not in regex but modifiedRegex
@@ -111,7 +106,7 @@ function fillGroups(regex) {
       groupIndexMapper[groupCount] = groupCount + groupsAdded;
       previousGroupsForGroup[groupCount] = currentLengthIndexes.slice();
     }
-    else if (matchArr[3]) { // closing bracket
+    else if (matchArr[5]) { // closing bracket
       let index = matchArr.index + matchArr[0].length - 1;
 
       if ((groupPositions.length && !nonGroupPositions.length) ||
@@ -130,6 +125,7 @@ function fillGroups(regex) {
       }
       else if (nonGroupPositions.length) {
         nonGroupPositions.pop();
+        lastNonGroupEndPosition = index;
       }
     }
   }

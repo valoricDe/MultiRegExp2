@@ -4,8 +4,8 @@ This class gets all matches, with start and end position, within the string, for
 
 From high level the source code is:
  
- 1. Parsing the regexp and introducing groups for parts of the regexp which did not have one: eg. /ab(cd)ef/ => /(ab)(cd)(ef)/
- 2. Executing exec on a given string
+ 1. Ensuring that each character is captured by a group: eg. /ab(cd)ef/ => /(ab)(cd)(ef)/
+ 2. Calling exec on the converted regexp with a given string
  3. Summing lengths of previous groups for start position of current group, add length of current group for end position 
 
 ## Usage
