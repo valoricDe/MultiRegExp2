@@ -8,6 +8,20 @@ From high level the source code is:
  2. Calling exec on the converted regexp with a given string
  3. Summing lengths of previous groups for start position of current group, add length of current group for end position 
 
+## API
+
+MultiRegexp2(baseRegExp: Regexp)
+---
+will setup parsed regexp, returns instance
+
+execForAllGroups(string: string, includeFullMatch: boolean)
+---
+will find all matching groups, returns array<{match: string, start: Number, end: Number}>
+
+execForGroup(string: string, group: Number)
+---
+will find match for group number, returns {match: string, start: Number, end: Number}
+
 ## Usage
 ```
 let regex = /a(?: )bc(def(ghi)xyz)/g;
@@ -35,4 +49,4 @@ let matches = regex2.execForGroup('ababa bcdefghixyzXXXX', 2);
 
 ## Contribution
 
-to compile the module to ES5 run `npm run build`
+to compile the module to ES5 run `npm install && npm run build && npm run test`

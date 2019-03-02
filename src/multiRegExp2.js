@@ -59,20 +59,20 @@ function fillGroups(regex) {
   const nonGroupPositions = [];
   const groupPositions = [];
   const groupNumber = [];
-  const currentLengthIndexes = [];
+  let currentLengthIndexes = [];
   const groupIndexMapper = {};
   const previousGroupsForGroup = {};
   while ((matchArr = tester.exec(regexString)) !== null) {
-    if(matchArr[1] || matchArr[2]) { // ignore escaped brackets
+    if(matchArr[1] || matchArr[2]) { // ignore escaped brackets \(, \)
 
     }
-    if (matchArr[3]) { // non capturing group
+    if (matchArr[3]) { // non capturing group (?
       let index = matchArr.index + matchArr[0].length - 1;
 
       lastNonGroupStartPosition = index;
       nonGroupPositions.push(index);
     }
-    else if (matchArr[4]) { // capturing group
+    else if (matchArr[4]) { // capturing group (
       let index = matchArr.index + matchArr[0].length - 1;
 
       let lastGroupPosition = Math.max(lastGroupStartPosition, lastGroupEndPosition);
@@ -106,7 +106,7 @@ function fillGroups(regex) {
       groupIndexMapper[groupCount] = groupCount + groupsAdded;
       previousGroupsForGroup[groupCount] = currentLengthIndexes.slice();
     }
-    else if (matchArr[5]) { // closing bracket
+    else if (matchArr[5]) { // closing bracket ), )+, )+?, ){1,}?, ){1,1111}?
       let index = matchArr.index + matchArr[0].length - 1;
 
       if ((groupPositions.length && !nonGroupPositions.length) ||
@@ -121,7 +121,11 @@ function fillGroups(regex) {
 
         groupPositions.pop();
         lastGroupEndPosition = index;
-        currentLengthIndexes.push(groupNumber.pop());
+        // currentLengthIndexes.push(groupNumber.pop());
+
+        let toPush = groupNumber.pop();
+        currentLengthIndexes.push(toPush);
+        currentLengthIndexes = currentLengthIndexes.filter(index => index <= toPush);
       }
       else if (nonGroupPositions.length) {
         nonGroupPositions.pop();
@@ -145,8 +149,8 @@ export default class MultiRegExp2 {
     let matches = RegExp.prototype.exec.call(this.regexp, string);
     if (!matches) return matches;
     let firstIndex = matches.index;
-    let indexMapper = includeFullMatch ? this.groupIndexMapper : Object.assign({0: 0}, this.groupIndexMapper);
-    let previousGroups = includeFullMatch ? this.previousGroupsForGroup : Object.assign({0: []}, this.previousGroupsForGroup);
+    let indexMapper = includeFullMatch ? Object.assign({0: 0}, this.groupIndexMapper) : this.groupIndexMapper;
+    let previousGroups = includeFullMatch ? Object.assign({0: []}, this.previousGroupsForGroup) : this.previousGroupsForGroup;
 
     return Object.keys(indexMapper).map((group) => {
       let mapped = indexMapper[group];

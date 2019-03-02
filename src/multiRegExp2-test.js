@@ -33,8 +33,20 @@ const assertRegExpExecution = (func, expected) => {
 
 assertRegExpConversion(/a(?:(b))?/, "(a)(?:(b))?");
 assertRegExpConversion(/a(?:c(b))?/, "(a)(?:(c)(b))?");
+assertRegExpConversion(/a(?:c(b))?/, "(a)(?:(c)(b))?");
 
 assertRegExpExecution(
-  () => new MultiRegExp2(/\(/).execForAllGroups("a(b"),
+  () => new MultiRegExp2(/\(/).execForAllGroups("a(b", true),
   [{match: "(", start: 1, end: 2}]
+);
+
+assertRegExpExecution(
+  () => new MultiRegExp2(/(foobar)((http)(s))(:\/\/)/).execForAllGroups("foobarhttps://regex101.com"),
+  [
+    {match: "foobar", start: 0, end: 6},
+    {match: "https", start: 6, end: 11},
+    {match: "http", start: 6, end: 10},
+    {match: "s", start: 10, end: 11},
+    {match: "://", start: 11, end: 14}
+  ]
 );
