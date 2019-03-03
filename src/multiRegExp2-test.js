@@ -34,6 +34,8 @@ const assertRegExpExecution = (func, expected) => {
 assertRegExpConversion(/a(?:(b))?/, "(a)(?:(b))?");
 assertRegExpConversion(/a(?:c(b))?/, "(a)(?:(c)(b))?");
 assertRegExpConversion(/a(?:c(b))?/, "(a)(?:(c)(b))?");
+assertRegExpConversion(/\[(?:a=(.*?))?(?:b=(.*?))?]/, "(\\[)(?:(a=)(.*?))?(?:(b=)(.*?))?]")
+assertRegExpConversion(/\[(?:a=(.*?)f)?o(?:b=(.*?))?]/, "(\\[)(?:(a=)(.*?)(f))?(o)(?:(b=)(.*?))?]")
 
 assertRegExpExecution(
   () => new MultiRegExp2(/\(/).execForAllGroups("a(b", true),

@@ -79,10 +79,29 @@ function fillGroups(regex) {
 
       // if a (? is found add ) before it
       if(lastNonGroupStartPosition > lastGroupPosition) {
-        modifiedRegex = addGroupToRegexString(modifiedRegex, lastGroupPosition + 1, lastNonGroupStartPosition - 2, groupsAdded);
-        groupsAdded++;
-        lastGroupEndPosition = lastNonGroupStartPosition - 1; // imaginary position as it is not in regex but modifiedRegex
-        currentLengthIndexes.push(groupCount + groupsAdded);
+        // check if between ) of capturing group lies a non capturing group
+        if(lastGroupPosition < lastNonGroupEndPosition) {
+          // add groups for x1 and x2 on (?:()x1)x2(?:...
+          if((lastNonGroupEndPosition - 1) - (lastGroupPosition + 1) > 0) {
+            modifiedRegex = addGroupToRegexString(modifiedRegex, lastGroupPosition + 1, lastNonGroupEndPosition - 1, groupsAdded);
+            groupsAdded++;
+            lastGroupEndPosition = lastNonGroupEndPosition - 1; // imaginary position as it is not in regex but modifiedRegex
+            currentLengthIndexes.push(groupCount + groupsAdded);
+          }
+
+          if((lastNonGroupStartPosition - 1) - (lastNonGroupEndPosition + 1) > 0) {
+            modifiedRegex = addGroupToRegexString(modifiedRegex, lastNonGroupEndPosition + 1, lastNonGroupStartPosition - 2, groupsAdded);
+            groupsAdded++;
+            lastGroupEndPosition = lastNonGroupStartPosition - 1; // imaginary position as it is not in regex but modifiedRegex
+            currentLengthIndexes.push(groupCount + groupsAdded);
+          }
+        }
+        else {
+          modifiedRegex = addGroupToRegexString(modifiedRegex, lastGroupPosition + 1, lastNonGroupStartPosition - 2, groupsAdded);
+          groupsAdded++;
+          lastGroupEndPosition = lastNonGroupStartPosition - 1; // imaginary position as it is not in regex but modifiedRegex
+          currentLengthIndexes.push(groupCount + groupsAdded);
+        }
 
         // if necessary also add group between (? and opening bracket
         if(index > lastNonGroupStartPosition + 2) {
@@ -121,7 +140,6 @@ function fillGroups(regex) {
 
         groupPositions.pop();
         lastGroupEndPosition = index;
-        // currentLengthIndexes.push(groupNumber.pop());
 
         let toPush = groupNumber.pop();
         currentLengthIndexes.push(toPush);
