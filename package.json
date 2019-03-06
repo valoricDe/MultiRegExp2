@@ -1,14 +1,14 @@
 {
   "name": "multi-regexp2",
   "version": "1.0.3",
-  "main": "lib/multiRegExp2.js",
+  "main": "dist/multiRegExp2.js",
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-preset-es2015": "^6.22.0"
   },
   "scripts": {
-    "build": "babel src --out-dir lib --source-maps --presets es2015 --watch",
-    "test": "node lib/multiRegExp2-test.js",
+    "build": "babel src --out-dir dist --source-maps --presets es2015 --watch",
+    "test": "node dist/multiRegExp2-test.js",
     "best": "npm run build && npm run test"
   }
 }
