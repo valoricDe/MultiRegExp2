@@ -43,6 +43,11 @@ assertRegExpExecution(
 );
 
 assertRegExpExecution(
+    () => new MultiRegExp2(/a(a*)a/).execForAllGroups("aaaaaaaaaaaaaa", true),
+    [{match: "aaaaaaaaaaaa", start: 1, end: 13}]
+);
+
+assertRegExpExecution(
   () => new MultiRegExp2(/(foobar)((http)(s))(:\/\/)/).execForAllGroups("foobarhttps://regex101.com"),
   [
     {match: "foobar", start: 0, end: 6},

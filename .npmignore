@@ -1,4 +1,5 @@
 /.idea
 /src
-/dist/multiRegExp2-test.js
+/dist/*test*
 *.map
+n

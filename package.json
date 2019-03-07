@@ -13,7 +13,7 @@
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
-    "test": "node dist/multiRegExp2-test.js",
+    "test": "node dist/multiRegExp2-test.esm.js",
     "pretest": "npm run build"
   },
   "files": [
