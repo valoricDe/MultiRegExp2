@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * Created by velten on 11.02.17.
  */
@@ -203,4 +201,4 @@ class MultiRegExp2 {
   }
 }
 
-module.exports = MultiRegExp2;
+export default MultiRegExp2;
