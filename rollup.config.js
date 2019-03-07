@@ -3,17 +3,17 @@ import commonjs from 'rollup-plugin-commonjs';
 import pkg from './package.json';
 
 export default [
-    // browser-friendly UMD build
     {
         input: 'src/multiRegExp2.js',
         output: {
-            name: 'howLongUntilLunch',
+            name: 'multiRegExp2',
             file: pkg.browser,
-            format: 'umd'
+            format: 'iife', // immediately-invoked function expression — suitable for <script> tags
+            sourcemap: true
         },
         plugins: [
-            resolve(), // so Rollup can find `ms`
-            commonjs() // so Rollup can convert `ms` to an ES module
+            resolve(), // tells Rollup how to find date-fns in node_modules
+            commonjs(), // converts date-fns to ES modules
         ]
     },
 

@@ -1,13 +1,14 @@
 {
   "name": "multi-regexp2",
   "version": "1.1.0",
-  "main": "dist/multiRegExp2.js",
+  "main": "dist/multiRegExp2.cjs.js",
   "module": "dist/multiRegExp2.esm.js",
-  "browser": "dist/multiRegExp2.umd.js",
+  "browser": "dist/multiRegExp2.js",
   "devDependencies": {
     "rollup": "^1.0.0",
     "rollup-plugin-commonjs": "^9.2.0",
-    "rollup-plugin-node-resolve": "^4.0.0"
+    "rollup-plugin-node-resolve": "^4.0.0",
+    "rollup-plugin-uglify": "^6.0.2"
   },
   "scripts": {
     "build": "rollup -c",
